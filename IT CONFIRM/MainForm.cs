@@ -445,7 +445,8 @@ namespace IT_CONFIRM
                 {
                     if (txtSx1.Text.Equals("All", StringComparison.OrdinalIgnoreCase))
                     {
-                        return $"{ConvertToPixel("All", "Sx1")},{ConvertToPixel("All", "Ex1")},{ConvertToPixel("All", "Sy1")},{ConvertToPixel("All", "Ey1")}";
+                        // Gán giá trị cố định cho cả nhóm, bất kể giá trị của txtEx1, txtSy1, txtEy1
+                        return "0,1668,0,2420";
                     }
                     return $"{ConvertToPixel(txtSx1.Text, "Sx1")},{ConvertToPixel(txtEx1.Text, "Ex1")},{ConvertToPixel(txtSy1.Text, "Sy1")},{ConvertToPixel(txtEy1.Text, "Ey1")}";
                 }
@@ -468,7 +469,7 @@ namespace IT_CONFIRM
                 File.AppendAllText(filePath, csvData + Environment.NewLine, System.Text.Encoding.UTF8);
                 _lastSavedFilePath = filePath;
                 lblStatus.ForeColor = System.Drawing.Color.Green;
-                lblStatus.Text = $"Lưu thành công lúc gần đây nhất: {timestamp}\nDữ liệu được lưu tại: {filePath}";
+                lblStatus.Text = $"Lưu thành công lúc gần đây nhất {timestamp}\nDữ liệu được lưu tại {filePath}";
                 statusToolTip.SetToolTip(lblStatus, "Bấm vào đây để mở thư mục lưu file");
 
                 txtSAPN.Clear();
