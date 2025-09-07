@@ -87,6 +87,9 @@
             this.lblStatus = new System.Windows.Forms.Label();
             this.lblSAPNCount = new System.Windows.Forms.Label();
             this.lblCopyright = new System.Windows.Forms.Label();
+            this.rdoI251 = new System.Windows.Forms.RadioButton();
+            this.rdoI252 = new System.Windows.Forms.RadioButton();
+            this.lbModel = new System.Windows.Forms.Label();
             this.panelKeyboard.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -104,11 +107,12 @@
             // txtSAPN
             // 
             this.txtSAPN.BackColor = System.Drawing.SystemColors.Window;
-            this.txtSAPN.Font = new System.Drawing.Font("Segoe UI", 18F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txtSAPN.Location = new System.Drawing.Point(65, 15);
+            this.txtSAPN.CharacterCasing = System.Windows.Forms.CharacterCasing.Upper;
+            this.txtSAPN.Font = new System.Drawing.Font("Segoe UI Semibold", 15.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.txtSAPN.Location = new System.Drawing.Point(65, 16);
             this.txtSAPN.Margin = new System.Windows.Forms.Padding(4);
             this.txtSAPN.Name = "txtSAPN";
-            this.txtSAPN.Size = new System.Drawing.Size(562, 39);
+            this.txtSAPN.Size = new System.Drawing.Size(562, 35);
             this.txtSAPN.TabIndex = 1;
             // 
             // labelCoordSE
@@ -154,7 +158,7 @@
             this.labelSy1.Name = "labelSy1";
             this.labelSy1.Size = new System.Drawing.Size(33, 17);
             this.labelSy1.TabIndex = 5;
-            this.labelSy1.Text = "Ex1:";
+            this.labelSy1.Text = "Sy1:";
             // 
             // txtSy1
             // 
@@ -176,7 +180,7 @@
             this.labelEx1.Name = "labelEx1";
             this.labelEx1.Size = new System.Drawing.Size(33, 17);
             this.labelEx1.TabIndex = 7;
-            this.labelEx1.Text = "Sy1:";
+            this.labelEx1.Text = "Ex1:";
             // 
             // txtEx1
             // 
@@ -242,7 +246,7 @@
             this.labelSy2.Name = "labelSy2";
             this.labelSy2.Size = new System.Drawing.Size(33, 17);
             this.labelSy2.TabIndex = 13;
-            this.labelSy2.Text = "Ex2:";
+            this.labelSy2.Text = "Sy2:";
             // 
             // txtSy2
             // 
@@ -264,7 +268,7 @@
             this.labelEx2.Name = "labelEx2";
             this.labelEx2.Size = new System.Drawing.Size(33, 17);
             this.labelEx2.TabIndex = 15;
-            this.labelEx2.Text = "Sy2:";
+            this.labelEx2.Text = "Ex2:";
             // 
             // txtEx2
             // 
@@ -330,7 +334,7 @@
             this.labelSy3.Name = "labelSy3";
             this.labelSy3.Size = new System.Drawing.Size(33, 17);
             this.labelSy3.TabIndex = 21;
-            this.labelSy3.Text = "Ex3:";
+            this.labelSy3.Text = "Sy3:";
             // 
             // txtSy3
             // 
@@ -352,7 +356,7 @@
             this.labelEx3.Name = "labelEx3";
             this.labelEx3.Size = new System.Drawing.Size(33, 17);
             this.labelEx3.TabIndex = 23;
-            this.labelEx3.Text = "Sy3:";
+            this.labelEx3.Text = "Sx3:";
             // 
             // txtEx3
             // 
@@ -531,7 +535,7 @@
             this.panelKeyboard.Controls.Add(this.btn9);
             this.panelKeyboard.Controls.Add(this.btn8);
             this.panelKeyboard.Controls.Add(this.btn7);
-            this.panelKeyboard.Location = new System.Drawing.Point(404, 95);
+            this.panelKeyboard.Location = new System.Drawing.Point(407, 103);
             this.panelKeyboard.Margin = new System.Windows.Forms.Padding(4);
             this.panelKeyboard.Name = "panelKeyboard";
             this.panelKeyboard.Size = new System.Drawing.Size(236, 292);
@@ -686,10 +690,10 @@
             // btnSave
             // 
             this.btnSave.BackColor = System.Drawing.Color.MediumSeaGreen;
-            this.btnSave.Location = new System.Drawing.Point(426, 414);
+            this.btnSave.Location = new System.Drawing.Point(426, 420);
             this.btnSave.Margin = new System.Windows.Forms.Padding(4);
             this.btnSave.Name = "btnSave";
-            this.btnSave.Size = new System.Drawing.Size(81, 42);
+            this.btnSave.Size = new System.Drawing.Size(81, 43);
             this.btnSave.TabIndex = 41;
             this.btnSave.Text = "SAVE";
             this.btnSave.UseVisualStyleBackColor = false;
@@ -698,10 +702,10 @@
             // btnReset
             // 
             this.btnReset.BackColor = System.Drawing.Color.Orange;
-            this.btnReset.Location = new System.Drawing.Point(535, 414);
+            this.btnReset.Location = new System.Drawing.Point(535, 420);
             this.btnReset.Margin = new System.Windows.Forms.Padding(4);
             this.btnReset.Name = "btnReset";
-            this.btnReset.Size = new System.Drawing.Size(81, 42);
+            this.btnReset.Size = new System.Drawing.Size(81, 43);
             this.btnReset.TabIndex = 42;
             this.btnReset.Text = "RESET";
             this.btnReset.UseVisualStyleBackColor = false;
@@ -742,11 +746,50 @@
             this.lblCopyright.MouseEnter += new System.EventHandler(this.LblCopyright_MouseEnter);
             this.lblCopyright.MouseLeave += new System.EventHandler(this.LblCopyright_MouseEnter);
             // 
+            // rdoI251
+            // 
+            this.rdoI251.AutoSize = true;
+            this.rdoI251.Font = new System.Drawing.Font("Segoe UI Semibold", 14.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.rdoI251.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(192)))), ((int)(((byte)(0)))), ((int)(((byte)(192)))));
+            this.rdoI251.Location = new System.Drawing.Point(481, 63);
+            this.rdoI251.Margin = new System.Windows.Forms.Padding(4);
+            this.rdoI251.Name = "rdoI251";
+            this.rdoI251.Size = new System.Drawing.Size(66, 29);
+            this.rdoI251.TabIndex = 61;
+            this.rdoI251.Text = "I251";
+            this.rdoI251.UseVisualStyleBackColor = true;
+            // 
+            // rdoI252
+            // 
+            this.rdoI252.AutoSize = true;
+            this.rdoI252.Font = new System.Drawing.Font("Segoe UI Semibold", 14.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.rdoI252.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(0)))), ((int)(((byte)(192)))));
+            this.rdoI252.Location = new System.Drawing.Point(561, 63);
+            this.rdoI252.Margin = new System.Windows.Forms.Padding(4);
+            this.rdoI252.Name = "rdoI252";
+            this.rdoI252.Size = new System.Drawing.Size(69, 29);
+            this.rdoI252.TabIndex = 62;
+            this.rdoI252.Text = "I252";
+            this.rdoI252.UseVisualStyleBackColor = true;
+            // 
+            // lbModel
+            // 
+            this.lbModel.AutoSize = true;
+            this.lbModel.ForeColor = System.Drawing.Color.Teal;
+            this.lbModel.Location = new System.Drawing.Point(417, 70);
+            this.lbModel.Name = "lbModel";
+            this.lbModel.Size = new System.Drawing.Size(54, 17);
+            this.lbModel.TabIndex = 63;
+            this.lbModel.Text = "MODEL";
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 17F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(656, 562);
+            this.Controls.Add(this.lbModel);
+            this.Controls.Add(this.rdoI252);
+            this.Controls.Add(this.rdoI251);
             this.Controls.Add(this.lblStatus);
             this.Controls.Add(this.btnReset);
             this.Controls.Add(this.btnSave);
@@ -868,7 +911,7 @@
         private System.Windows.Forms.Button btn0;
         private System.Windows.Forms.Button btnBack;
         private System.Windows.Forms.Label lblStatus;
+        private System.Windows.Forms.Label lbModel;
         #endregion
-
     }
 }

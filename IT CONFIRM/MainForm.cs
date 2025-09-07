@@ -19,22 +19,21 @@ namespace IT_CONFIRM
         private Color originalCopyrightColor;
         private double rainbowPhase = 0;       
         private Dictionary<string, Color> originalColors = new Dictionary<string, Color>();// Sử dụng Dictionary để lưu màu gốc của tất cả các nút
+        private RadioButton rdoI251; // Khai báo RadioButton cho I251
+        private RadioButton rdoI252; // Khai báo RadioButton cho I252
 
         //Để tính PPI cho màn hình 11 inch với độ phân giải 1668x2420:
-        //Tính số pixel trên đường chéo: √(1668² + 2420²) = √(2782224 + 5856400) = √8638624 ≈ 2939 pixel
-        //PPI = số pixel trên đường chéo / kích thước đường chéo màn hình = 2939 / 11 ≈ 267.18 PPI
-        //Sau đó, tính số pixel trên 1 mm:
-        //Số pixel/mm = PPI / 25.4 ≈ 267.18 / 25.4 ≈ 10.52 pixel/mm
-        //Vậy, với màn hình 11 inch và độ phân giải 1668x2420, bạn có thể quy đổi từ mm sang pixel bằng cách nhân số mm với 10.52.
-        private const double MmToPixelRatio = 10.525; // Tỷ lệ chuyển đổi từ mm sang pixel cho màn hình 1668x2420, 11 inch
+        //Chiều dài cell: 2420/232 = 10.43 , Chiều cao cell: 1668/160 = 10.43
+        //private const double MmToPixelRatio = 10.43; // Tỷ lệ chuyển đổi từ mm sang pixel cho màn hình 1668x2420, 11 inch
 
         //Để tính PPI cho màn hình 13 inch với độ phân giải 2048x2732:
-        //Tính số pixel trên đường chéo: √(2048² + 2732²) = √(4194304 + 7462624) = √11656928 ≈ 3414 pixel
-        //PPI = số pixel trên đường chéo / kích thước đường chéo màn hình = 3414 / 13 ≈ 262.62 PPI
-        //Sau đó, tính số pixel trên 1 mm:
-        //Số pixel/mm = PPI / 25.4 ≈ 262.62 / 25.4 ≈ 10.34 pixel/mm
-        //Vậy, với màn hình 13 inch và độ phân giải 2048x2732, bạn có thể quy đổi từ mm sang pixel bằng cách nhân số mm với 10.34.
-        //private const double MmToPixelRatio = 10.34; // Tỷ lệ chuyển đổi từ mm sang pixel cho màn hình 2048x2732, 13 inch
+        //Chiều dài cell: 2732/232 = 10.43 , Chiều cao cell: 2048/160 = 10.???
+        //private const double MmToPixelRatio = 10.???; // Tỷ lệ chuyển đổi từ mm sang pixel cho màn hình 2048x2732, 13 inch
+        
+        // Tỷ lệ chuyển đổi từ mm sang pixel, sẽ được cập nhật dựa trên model được chọn
+        private double MmToPixelRatio => rdoI251.Checked ? 10.43 : 10.52; // I251: 10.43, I252: 10.34
+      
+
         #endregion
 
         #region FORM KHỞI TẠO UI
@@ -378,6 +377,15 @@ namespace IT_CONFIRM
         // Xử lý nút SAVE
         private void btnSave_Click(object sender, EventArgs e)
         {
+            // Kiểm tra xem đã chọn model chưa
+            if (!rdoI251.Checked && !rdoI252.Checked)
+            {
+                validationToolTip.ToolTipIcon = ToolTipIcon.Warning;
+                validationToolTip.ToolTipTitle = "Lỗi";
+                validationToolTip.Show("Vui lòng chọn model (I251 hoặc I252)!", rdoI251, 0, rdoI251.Height, 5000);
+                return;
+            }
+
             if (!IsDataValid())
             {
                 validationToolTip.ToolTipIcon = ToolTipIcon.Warning;
@@ -402,7 +410,7 @@ namespace IT_CONFIRM
                 bool fileExists = File.Exists(filePath);
                 if (!fileExists)
                 {
-                    string header = "sAPN,Sx1,Ex1,Sy1,Ey1,Sx2,Ex2,Sy2,Ey2,Sx3,Ex3,Sy3,Ey3,X1,Y1,X2,Y2,X3,Y3,EVENT_TIME";
+                    string header = "MODEL,sAPN,Sx1,Sy1,Ex1,Ey1,Sx2,Sy2,Ex2,Ey2,Sx3,Sy3,Ex3,Ey3,X1,Y1,X2,Y2,X3,Y3,EVENT_TIME";
                     File.AppendAllText(filePath, header + Environment.NewLine, System.Text.Encoding.UTF8);
                 }
 
@@ -419,14 +427,12 @@ namespace IT_CONFIRM
                         {
                             case "Sx1":
                                 return "0";
-                            case "Ex1":
-                                return "1668";
-                                //return "2048"; //Dành cho màn 13" model I252
                             case "Sy1":
                                 return "0";
+                            case "Ex1":
+                                return rdoI251.Checked ? "2420" : "2732";
                             case "Ey1":
-                                return "2420";
-                                //return "2732"; //Dành cho màn 13" model I252
+                                return rdoI251.Checked ? "1668" : "2048";
                             default:
                                 return value; // Không áp dụng cho các trường khác
                         }
@@ -446,22 +452,25 @@ namespace IT_CONFIRM
                     if (txtSx1.Text.Equals("All", StringComparison.OrdinalIgnoreCase))
                     {
                         // Gán giá trị cố định cho cả nhóm, bất kể giá trị của txtEx1, txtSy1, txtEy1
-                        return "0,1668,0,2420";
+                        return rdoI251.Checked ? "0,0,2420,1668" : "0,0,2732,2048";
                     }
-                    return $"{ConvertToPixel(txtSx1.Text, "Sx1")},{ConvertToPixel(txtEx1.Text, "Ex1")},{ConvertToPixel(txtSy1.Text, "Sy1")},{ConvertToPixel(txtEy1.Text, "Ey1")}";
+                    return $"{ConvertToPixel(txtSx1.Text, "Sx1")},{ConvertToPixel(txtSy1.Text, "Sy1")},{ConvertToPixel(txtEx1.Text, "Ex1")},{ConvertToPixel(txtEy1.Text, "Ey1")}";
                 }
 
                 // Xử lý các nhóm tọa độ khác (không áp dụng logic "All")
-                string GetGroupValue(string sx, string ex, string sy, string ey, string sxField, string exField, string syField, string eyField)
+                string GetGroupValue(string sx, string sy, string ex, string ey, string sxField, string syField, string exField, string eyField)
                 {
-                    return $"{ConvertToPixel(sx, sxField)},{ConvertToPixel(ex, exField)},{ConvertToPixel(sy, syField)},{ConvertToPixel(ey, eyField)}";
+                    return $"{ConvertToPixel(sx, sxField)},{ConvertToPixel(sy, syField)},{ConvertToPixel(ex, exField)},{ConvertToPixel(ey, eyField)}";
                 }
 
+                // Xác định model được chọn
+                string selectedModel = rdoI251.Checked ? "I251" : "I252";
+
                 // Áp dụng chuyển đổi cho các nhóm tọa độ
-                string csvData = $"{txtSAPN.Text}," +
+                string csvData = $"{selectedModel},{txtSAPN.Text}," +
                                  $"{GetGroup1Value()}," +
-                                 $"{GetGroupValue(txtSx2.Text, txtEx2.Text, txtSy2.Text, txtEy2.Text, "Sx2", "Ex2", "Sy2", "Ey2")}," +
-                                 $"{GetGroupValue(txtSx3.Text, txtEx3.Text, txtSy3.Text, txtEy3.Text, "Sx3", "Ex3", "Sy3", "Ey3")}," +
+                                 $"{GetGroupValue(txtSx2.Text, txtSy2.Text, txtEx2.Text, txtEy2.Text, "Sx2", "Sy2", "Ex2", "Ey2")}," +
+                                 $"{GetGroupValue(txtSx3.Text, txtSy3.Text, txtEx3.Text, txtEy3.Text, "Sx3", "Sy3", "Ex3", "Ey3")}," +
                                  $"{ConvertToPixel(txtX1.Text, "X1")},{ConvertToPixel(txtY1.Text, "Y1")}," +
                                  $"{ConvertToPixel(txtX2.Text, "X2")},{ConvertToPixel(txtY2.Text, "Y2")}," +
                                  $"{ConvertToPixel(txtX3.Text, "X3")},{ConvertToPixel(txtY3.Text, "Y3")},{timestamp}";
