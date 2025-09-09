@@ -9,6 +9,8 @@ namespace IT_CONFIRM
 {
     public partial class MainForm : Form
     {
+
+
         #region KHAI BÁO CÁC BIẾN
         private TextBox currentTextBox;
         private ToolTip validationToolTip;
@@ -27,11 +29,11 @@ namespace IT_CONFIRM
         //private const double MmToPixelRatio = 10.43; // Tỷ lệ chuyển đổi từ mm sang pixel cho màn hình 1668x2420, 11 inch
 
         //Để tính PPI cho màn hình 13 inch với độ phân giải 2048x2732:
-        //Chiều dài cell: 2732/232 = 10.43 , Chiều cao cell: 2048/160 = 10.???
+        //Chiều dài cell: 2732/264 = 10.34 , Chiều cao cell: 2048/193 = 10.34
         //private const double MmToPixelRatio = 10.???; // Tỷ lệ chuyển đổi từ mm sang pixel cho màn hình 2048x2732, 13 inch
         
         // Tỷ lệ chuyển đổi từ mm sang pixel, sẽ được cập nhật dựa trên model được chọn
-        private double MmToPixelRatio => rdoI251.Checked ? 10.43 : 10.52; // I251: 10.43, I252: 10.34
+        private double MmToPixelRatio => rdoI251.Checked ? 10.43 : 10.34; // I251: 10.43, I252: 10.34
       
 
         #endregion
@@ -46,6 +48,10 @@ namespace IT_CONFIRM
             statusToolTip = new ToolTip();//Gợi ý bấm vào để mở thư mục
             this.lblStatus.Text = "Sẵn sàng nhập dữ liệu...";
             UpdateSavedSAPNCount();
+
+            // Khởi tạo ComboBox với danh sách lỗi
+            cboErrorType.Items.AddRange(new string[] { "B-SPOT", "W-POT", "ĐỐM SPIN", "ĐỐM PANEL", "ĐỐM ĐƯỜNG DỌC", "-" });
+            cboErrorType.SelectedIndex = -1; // Mặc định chọn "ĐỐM" =-1 KHÔNG CHỌN GÌ
 
             // Khởi tạo timer cho hiệu ứng cầu vồng
             this.rainbowTimer = new Timer();
@@ -377,7 +383,16 @@ namespace IT_CONFIRM
         // Xử lý nút SAVE
         private void btnSave_Click(object sender, EventArgs e)
         {
-            // Kiểm tra xem đã chọn model chưa
+            // Kiểm tra xem đã chọn loại lỗi chưa
+            if (cboErrorType.SelectedIndex == -1)
+            {
+                validationToolTip.ToolTipIcon = ToolTipIcon.Warning;
+                validationToolTip.ToolTipTitle = "Lỗi";
+                validationToolTip.Show("Vui lòng chọn loại lỗi!", cboErrorType, 0, cboErrorType.Height, 5000);
+                return;
+            }
+
+            //Kiểm tra xem đã chọn model chưa
             if (!rdoI251.Checked && !rdoI252.Checked)
             {
                 validationToolTip.ToolTipIcon = ToolTipIcon.Warning;
@@ -386,6 +401,7 @@ namespace IT_CONFIRM
                 return;
             }
 
+            // Kiểm tra dữ liệu hợp lệ
             if (!IsDataValid())
             {
                 validationToolTip.ToolTipIcon = ToolTipIcon.Warning;
@@ -395,7 +411,7 @@ namespace IT_CONFIRM
             }
 
             string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            string appFolderPath = Path.Combine(desktopPath, "IT_CONFIRM_E");
+            string appFolderPath = Path.Combine(desktopPath, "IT_CONFIRM_EDITION");
             string fileName = $"TOA DO_{DateTime.Now:yyyyMMdd}.csv";
             string filePath = Path.Combine(appFolderPath, fileName);
             string timestamp = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
@@ -410,7 +426,7 @@ namespace IT_CONFIRM
                 bool fileExists = File.Exists(filePath);
                 if (!fileExists)
                 {
-                    string header = "MODEL,sAPN,Sx1,Sy1,Ex1,Ey1,Sx2,Sy2,Ex2,Ey2,Sx3,Sy3,Ex3,Ey3,X1,Y1,X2,Y2,X3,Y3,EVENT_TIME";
+                    string header = "MODEL,sAPN,DESCRIPTION,Sx1,Sy1,Ex1,Ey1,Sx2,Sy2,Ex2,Ey2,Sx3,Sy3,Ex3,Ey3,X1,Y1,X2,Y2,X3,Y3,EVENT_TIME";
                     File.AppendAllText(filePath, header + Environment.NewLine, System.Text.Encoding.UTF8);
                 }
 
@@ -463,11 +479,13 @@ namespace IT_CONFIRM
                     return $"{ConvertToPixel(sx, sxField)},{ConvertToPixel(sy, syField)},{ConvertToPixel(ex, exField)},{ConvertToPixel(ey, eyField)}";
                 }
 
-                // Xác định model được chọn
+                // Lấy model đã chọn
                 string selectedModel = rdoI251.Checked ? "I251" : "I252";
+                // Lấy loại lỗi đã chọn từ ComboBox
+                string selectedErrorType = cboErrorType.SelectedItem.ToString();
 
                 // Áp dụng chuyển đổi cho các nhóm tọa độ
-                string csvData = $"{selectedModel},{txtSAPN.Text}," +
+                string csvData = $"{selectedModel},{txtSAPN.Text},{selectedErrorType}," +
                                  $"{GetGroup1Value()}," +
                                  $"{GetGroupValue(txtSx2.Text, txtSy2.Text, txtEx2.Text, txtEy2.Text, "Sx2", "Sy2", "Ex2", "Ey2")}," +
                                  $"{GetGroupValue(txtSx3.Text, txtSy3.Text, txtEx3.Text, txtEy3.Text, "Sx3", "Sy3", "Ex3", "Ey3")}," +
@@ -593,7 +611,7 @@ namespace IT_CONFIRM
         private void UpdateSavedSAPNCount()
         {
             string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            string appFolderPath = Path.Combine(desktopPath, "IT_CONFIRM_E");
+            string appFolderPath = Path.Combine(desktopPath, "IT_CONFIRM_EDITION");
             string fileName = $"TOA DO_{DateTime.Now:yyyyMMdd}.csv";
             string filePath = Path.Combine(appFolderPath, fileName);
 
@@ -607,11 +625,10 @@ namespace IT_CONFIRM
                     for (int i = 1; i < lines.Length; i++)
                     {
                         var parts = lines[i].Split(',');
-                        if (parts.Length > 1 && !string.IsNullOrWhiteSpace(parts[0]))
+                        if (parts.Length > 1 && !string.IsNullOrWhiteSpace(parts[1])) // Kiểm tra cột sAPN
                         {
-                            // Kiểm tra xem có ít nhất một tọa độ không rỗng
                             bool hasCoordinates = false;
-                            for (int j = 1; j < parts.Length - 1; j++)
+                            for (int j = 3; j < parts.Length - 1; j++) // Bắt đầu từ cột sau ERROR_TYPE
                             {
                                 if (!string.IsNullOrWhiteSpace(parts[j]))
                                 {
