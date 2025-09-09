@@ -73,7 +73,7 @@ namespace IT_CONFIRM_EDTION
         #region HIỆU ỨNG CHO CÁC NÚT BẤM
         private void InitializeButtonEffects()
         {
-            Color keyboardBaseColor = System.Drawing.ColorTranslator.FromHtml("#C8E2B1");
+            Color keyboardBaseColor = System.Drawing.ColorTranslator.FromHtml("#FFF");
 
             // Xử lý nút SAVE (giữ nguyên màu ban đầu)
             originalColors.Add("btnSave", btnSave.BackColor);
