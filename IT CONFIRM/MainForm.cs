@@ -5,7 +5,7 @@ using System.IO;
 using System.Windows.Forms;
 using System.Collections.Generic;
 
-namespace IT_CONFIRM
+namespace IT_CONFIRM_EDTION
 {
     public partial class MainForm : Form
     {
@@ -50,7 +50,7 @@ namespace IT_CONFIRM
             UpdateSavedSAPNCount();
 
             // Khởi tạo ComboBox với danh sách lỗi
-            cboErrorType.Items.AddRange(new string[] { "B-SPOT", "W-POT", "ĐỐM SPIN", "ĐỐM PANEL", "ĐỐM ĐƯỜNG DỌC", "-" });
+            cboErrorType.Items.AddRange(new string[] { "B-SPOT", "WHITE SPOT", "ĐỐM SPIN", "ĐỐM PANEL", "ĐỐM ĐƯỜNG DỌC", "-" });
             cboErrorType.SelectedIndex = -1; // Mặc định chọn "ĐỐM" =-1 KHÔNG CHỌN GÌ
 
             // Khởi tạo timer cho hiệu ứng cầu vồng
@@ -73,7 +73,7 @@ namespace IT_CONFIRM
         #region HIỆU ỨNG CHO CÁC NÚT BẤM
         private void InitializeButtonEffects()
         {
-            Color keyboardBaseColor = System.Drawing.ColorTranslator.FromHtml("#F5F5DC");
+            Color keyboardBaseColor = System.Drawing.ColorTranslator.FromHtml("#C8E2B1");
 
             // Xử lý nút SAVE (giữ nguyên màu ban đầu)
             originalColors.Add("btnSave", btnSave.BackColor);
@@ -290,7 +290,7 @@ namespace IT_CONFIRM
         }
         #endregion
 
-        #region LABEL TRẠNG THÁI VÀ MỞ THƯ MỤC
+        #region KIỂM TRA ĐÃ NHẬP DỮ LIÊU HAY CHƯA
         // Phương thức xử lý sự kiện Click cho lblStatus
         private void lblStatus_Click(object sender, EventArgs e)
         {
@@ -496,9 +496,10 @@ namespace IT_CONFIRM
                 File.AppendAllText(filePath, csvData + Environment.NewLine, System.Text.Encoding.UTF8);
                 _lastSavedFilePath = filePath;
                 lblStatus.ForeColor = System.Drawing.Color.Green;
-                lblStatus.Text = $"Lưu thành công lúc gần đây nhất {timestamp}\nDữ liệu được lưu tại {filePath}";
+                lblStatus.Text = $"Lưu thành công! Dữ liệu đã được ghi lại lúc: {timestamp}\nDữ liệu được lưu tại: {filePath}";
                 statusToolTip.SetToolTip(lblStatus, "Bấm vào đây để mở thư mục lưu file");
 
+                // Xóa nội dung của tất cả các TextBox sau khi lưu thành công
                 txtSAPN.Clear();
                 txtSx1.Clear();
                 txtSy1.Clear();
@@ -518,20 +519,27 @@ namespace IT_CONFIRM
                 txtY2.Clear();
                 txtX3.Clear();
                 txtY3.Clear();
+                //cboErrorType.SelectedIndex = 0; // Mặc định chọn "ĐỐM" =-1 KHÔNG CHỌN GÌ
 
+                // Đặt focus lại cho ô đầu tiên
                 txtSAPN.Focus();
+                // Cập nhật bộ đếm sau khi lưu
                 UpdateSavedSAPNCount();
             }
             catch (IOException)
             {
+                // Cập nhật thông báo lỗi cụ thể khi file đang được mở
                 lblStatus.ForeColor = System.Drawing.Color.Red;
                 lblStatus.Text = "File đang được mở bởi ứng dụng khác hoặc không thể ghi dữ liệu.\nHãy đóng file đang mở trước khi bấm Save";
+                // Xóa tooltip khi có lỗi
                 statusToolTip.SetToolTip(lblStatus, "");
             }
             catch (Exception ex)
             {
+                // Báo lỗi chung nếu có lỗi khác
                 lblStatus.ForeColor = System.Drawing.Color.Red;
                 lblStatus.Text = $"Đã xảy ra lỗi: {ex.Message}";
+                // Xóa tooltip khi có lỗi
                 statusToolTip.SetToolTip(lblStatus, "");
             }
         }
@@ -559,6 +567,7 @@ namespace IT_CONFIRM
             txtY2.Clear();
             txtX3.Clear();
             txtY3.Clear();
+            cboErrorType.SelectedIndex = -1; // Mặc định chọn "ĐỐM" =0 CHỌN DÒNG ĐẦU TIÊN
 
             // Cập nhật thông báo
             lblStatus.ForeColor = System.Drawing.Color.DarkOrange;
@@ -580,7 +589,7 @@ namespace IT_CONFIRM
             }
 
             // Kiểm tra độ dài tổng của ô nhập liệu
-            if (!char.IsControl(e.KeyChar) && textBox.Text.Length >= 4)
+            if (!char.IsControl(e.KeyChar) && textBox.Text.Length >= 3)
             {
                 e.Handled = true;
                 return;
@@ -627,6 +636,7 @@ namespace IT_CONFIRM
                         var parts = lines[i].Split(',');
                         if (parts.Length > 1 && !string.IsNullOrWhiteSpace(parts[1])) // Kiểm tra cột sAPN
                         {
+                            // Kiểm tra xem có ít nhất một tọa độ không rỗng
                             bool hasCoordinates = false;
                             for (int j = 3; j < parts.Length - 1; j++) // Bắt đầu từ cột sau ERROR_TYPE
                             {

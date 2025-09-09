@@ -4,7 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace IT_CONFIRM
+namespace IT_CONFIRM_EDTION
 {
     internal static class Program
     {
