@@ -5,17 +5,19 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Security.Principal;
+using System.Xml.Linq;
 
 namespace IT_CONFIRM_EDTION
 {
     public partial class MainForm : Form
     {
-        #region KHAI BÁO CÁC BIẾN
+        #region KHAI BÁO CÁC BIẾN CHÍNH
         private TextBox currentTextBox;
         private readonly ToolTip validationToolTip;
         private string _lastSavedFilePath; // Biến mới để lưu đường dẫn file        
@@ -29,7 +31,6 @@ namespace IT_CONFIRM_EDTION
         private RadioButton rdoI252; // Khai báo RadioButton cho I252
 
         // Biến cho NAS
-        private string nasFilePath; // Không phải readonly, cho phép gán trong SetFilePath
         private string nasDirectoryPath; // readonly, chỉ gán trong constructor
 
         //Để tính PPI cho màn hình 11 inch với độ phân giải 1668x2420:
@@ -459,7 +460,7 @@ namespace IT_CONFIRM_EDTION
                 return;
             }
 
-            //Kiểm tra xem đã chọn model chưa
+            // Kiểm tra xem đã chọn model chưa
             if (!rdoI251.Checked && !rdoI252.Checked)
             {
                 validationToolTip.ToolTipIcon = ToolTipIcon.Warning;
@@ -485,10 +486,8 @@ namespace IT_CONFIRM_EDTION
             string dateString;
             string shift;
 
-            // Nếu thời gian từ 20:00 hôm nay đến trước 08:00 hôm sau, sử dụng ngày bắt đầu ca đêm
             if (vietnamTime.Hour >= 20 || vietnamTime.Hour < 8)
             {
-                // Nếu thời gian từ 00:00 đến 07:59:59, sử dụng ngày hôm trước
                 if (vietnamTime.Hour < 8)
                 {
                     dateString = vietnamTime.AddDays(-1).ToString("yyyyMMdd");
@@ -499,7 +498,6 @@ namespace IT_CONFIRM_EDTION
                 }
                 shift = "NIGHT";
             }
-            // Nếu thời gian từ 08:00 đến trước 20:00, sử dụng ngày hiện tại và ca ngày
             else
             {
                 dateString = vietnamTime.ToString("yyyyMMdd");
@@ -511,7 +509,7 @@ namespace IT_CONFIRM_EDTION
             string appFolderPath = Path.Combine(desktopPath, "IT_CONFIRM_EDITION");
             string fileName = string.IsNullOrEmpty(eqpid) ? $"IT_{dateString}_{shift}.csv" : $"IT_{eqpid}_{dateString}_{shift}.csv";
             string filePath = Path.Combine(appFolderPath, fileName);
-            string timestamp = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
+            string timestamp = vietnamTime.ToString("dd/MM/yyyy HH:mm:ss");
 
             try
             {
@@ -523,7 +521,8 @@ namespace IT_CONFIRM_EDTION
                 bool fileExists = File.Exists(filePath);
                 if (!fileExists)
                 {
-                    string header = "MODEL,sAPN,DESCRIPTION,Sx1,Sy1,Ex1,Ey1,Sx2,Sy2,Ex2,Ey2,Sx3,Sy3,Ex3,Ey3,X1,Y1,X2,Y2,X3,Y3,EVENT_TIME";
+                    // Tiêu đề CSV với "X1,Y1", "X2,Y2", "X3,Y3" được bao quanh bởi dấu ngoặc kép
+                    string header = "MODEL,sAPN,DESCRIPTION,Sx1,Sy1,Ex1,Ey1,Sx2,Sy2,Ex2,Ey2,Sx3,Sy3,Ex3,Ey3,\"X1,Y1\",\"X2,Y2\",\"X3,Y3\",EVENT_TIME";
                     File.AppendAllText(filePath, header + Environment.NewLine, System.Text.Encoding.UTF8);
                 }
 
@@ -531,11 +530,10 @@ namespace IT_CONFIRM_EDTION
                 string ConvertToPixel(string value, string fieldName)
                 {
                     if (string.IsNullOrWhiteSpace(value))
-                        return value; // Giữ nguyên nếu rỗng
+                        return ""; // Trả về chuỗi rỗng nếu giá trị rỗng
 
                     if (value.Equals("All", StringComparison.OrdinalIgnoreCase) && fieldName == "Sx1")
                     {
-                        // Chỉ xử lý "All" cho TxtSx1
                         switch (fieldName)
                         {
                             case "Sx1":
@@ -547,7 +545,7 @@ namespace IT_CONFIRM_EDTION
                             case "Ey1":
                                 return rdoI251.Checked ? "1668" : "2048";
                             default:
-                                return value; // Không áp dụng cho các trường khác
+                                return "";
                         }
                     }
 
@@ -556,7 +554,7 @@ namespace IT_CONFIRM_EDTION
                         double pixelValue = mmValue * MmToPixelRatio;
                         return ((int)pixelValue).ToString(); // Làm tròn thành số nguyên
                     }
-                    return value; // Giữ nguyên nếu không phải số
+                    return ""; // Trả về chuỗi rỗng nếu không phải số
                 }
 
                 // Xử lý nhóm tọa độ đầu tiên (Sx1, Ex1, Sy1, Ey1)
@@ -564,16 +562,25 @@ namespace IT_CONFIRM_EDTION
                 {
                     if (TxtSx1.Text.Equals("All", StringComparison.OrdinalIgnoreCase))
                     {
-                        // Gán giá trị cố định cho cả nhóm, bất kể giá trị của TxtEx1, TxtSy1, TxtEy1
                         return rdoI251.Checked ? "0,0,2420,1668" : "0,0,2732,2048";
                     }
                     return $"{ConvertToPixel(TxtSx1.Text, "Sx1")},{ConvertToPixel(TxtSy1.Text, "Sy1")},{ConvertToPixel(TxtEx1.Text, "Ex1")},{ConvertToPixel(TxtEy1.Text, "Ey1")}";
                 }
 
-                // Xử lý các nhóm tọa độ khác (không áp dụng logic "All")
+                // Xử lý các nhóm tọa độ khác
                 string GetGroupValue(string sx, string sy, string ex, string ey, string sxField, string syField, string exField, string eyField)
                 {
                     return $"{ConvertToPixel(sx, sxField)},{ConvertToPixel(sy, syField)},{ConvertToPixel(ex, exField)},{ConvertToPixel(ey, eyField)}";
+                }
+
+                // Xử lý tọa độ SPOT (ghép thành cặp "X,Y" và thêm ký tự khoảng trắng không ngắt để ép định dạng chuỗi)
+                string GetSpotValue(string x, string y, string xField, string yField)
+                {
+                    string xValue = ConvertToPixel(x, xField);
+                    string yValue = ConvertToPixel(y, yField);
+                    if (string.IsNullOrWhiteSpace(xValue) && string.IsNullOrWhiteSpace(yValue))
+                        return "\"\"";
+                    return $"\"\u200B{xValue},{yValue}\""; // Thêm ký tự zero-width space
                 }
 
                 // Lấy model đã chọn
@@ -581,14 +588,14 @@ namespace IT_CONFIRM_EDTION
                 // Lấy loại lỗi đã chọn từ ComboBox
                 string selectedErrorType = cboErrorType.SelectedItem.ToString();
 
-                // Áp dụng chuyển đổi cho các nhóm tọa độ
+                // Tạo dữ liệu CSV
                 string csvData = $"{selectedModel},{TxtSAPN.Text},{selectedErrorType}," +
                                  $"{GetGroup1Value()}," +
                                  $"{GetGroupValue(TxtSx2.Text, TxtSy2.Text, TxtEx2.Text, TxtEy2.Text, "Sx2", "Sy2", "Ex2", "Ey2")}," +
                                  $"{GetGroupValue(TxtSx3.Text, TxtSy3.Text, TxtEx3.Text, TxtEy3.Text, "Sx3", "Sy3", "Ex3", "Ey3")}," +
-                                 $"{ConvertToPixel(TxtX1.Text, "X1")},{ConvertToPixel(TxtY1.Text, "Y1")}," +
-                                 $"{ConvertToPixel(TxtX2.Text, "X2")},{ConvertToPixel(TxtY2.Text, "Y2")}," +
-                                 $"{ConvertToPixel(TxtX3.Text, "X3")},{ConvertToPixel(TxtY3.Text, "Y3")},{timestamp}";
+                                 $"{GetSpotValue(TxtX1.Text, TxtY1.Text, "X1", "Y1")}," +
+                                 $"{GetSpotValue(TxtX2.Text, TxtY2.Text, "X2", "Y2")}," +
+                                 $"{GetSpotValue(TxtX3.Text, TxtY3.Text, "X3", "Y3")},{timestamp}";
 
                 File.AppendAllText(filePath, csvData + Environment.NewLine, System.Text.Encoding.UTF8);
                 _lastSavedFilePath = filePath;
@@ -616,61 +623,75 @@ namespace IT_CONFIRM_EDTION
                 TxtY2.Clear();
                 TxtX3.Clear();
                 TxtY3.Clear();
-                //cboErrorType.SelectedIndex = 0; // Mặc định chọn "ĐỐM" =-1 KHÔNG CHỌN GÌ
 
                 // Đặt focus lại cho ô đầu tiên
                 TxtSAPN.Focus();
                 // Cập nhật bộ đếm sau khi lưu
                 UpdateSavedSAPNCount();
+
                 // Chạy lưu NAS async (background) để không block UI
                 _ = Task.Run(() =>
                 {
-                    bool nasSaved = true;
+                    bool nasSaved = false;
                     string nasError = null;
-                    try
+                    string successfulNasPath = null;
+
+                    // Lấy danh sách thông tin xác thực NAS
+                    var nasCredentialsList = ReadNASCredentialsFromIniFile();
+
+                    // Thử từng server NAS trong danh sách
+                    foreach (var (nasPath, credentials) in nasCredentialsList)
                     {
-                        NetworkCredential nasCredentials = ReadNASCredentialsFromIniFile();
-                        using (var connection = new NetworkConnection(nasDirectoryPath, nasCredentials))
+                        try
                         {
-                            string nasSubDirectory = string.IsNullOrEmpty(ReadEQPIDFromIniFile()) ? "NoEQPID" : ReadEQPIDFromIniFile();
-                            string nasSubDirectoryPath = Path.Combine(nasDirectoryPath, nasSubDirectory);
-
-                            // Đảm bảo thư mục NAS chính tồn tại
-                            if (!Directory.Exists(nasDirectoryPath))
+                            using (var connection = new NetworkConnection(nasPath, credentials))
                             {
-                                Directory.CreateDirectory(nasDirectoryPath);
-                            }
+                                string nasSubDirectory = string.IsNullOrEmpty(ReadEQPIDFromIniFile()) ? "NoEQPID" : ReadEQPIDFromIniFile();
+                                string nasSubDirectoryPath = Path.Combine(nasPath, nasSubDirectory);
+                                string nasFilePath = Path.Combine(nasSubDirectoryPath, Path.GetFileName(_lastSavedFilePath));
 
-                            // Đảm bảo thư mục con EQPID tồn tại
-                            if (!Directory.Exists(nasSubDirectoryPath))
-                            {
-                                Directory.CreateDirectory(nasSubDirectoryPath);
-                            }
+                                // Đảm bảo thư mục NAS chính tồn tại
+                                if (!Directory.Exists(nasPath))
+                                {
+                                    Directory.CreateDirectory(nasPath);
+                                }
 
-                            if (!File.Exists(nasFilePath))
-                            {
-                                string header = "MODEL,sAPN,DESCRIPTION,Sx1,Sy1,Ex1,Ey1,Sx2,Sy2,Ex2,Ey2,Sx3,Sy3,Ex3,Ey3,X1,Y1,X2,Y2,X3,Y3,EVENT_TIME";
-                                File.AppendAllText(nasFilePath, header + Environment.NewLine, System.Text.Encoding.UTF8);
+                                // Đảm bảo thư mục con EQPID tồn tại
+                                if (!Directory.Exists(nasSubDirectoryPath))
+                                {
+                                    Directory.CreateDirectory(nasSubDirectoryPath);
+                                }
+
+                                // Tạo hoặc thêm vào file NAS
+                                if (!File.Exists(nasFilePath))
+                                {
+                                    string header = "MODEL,sAPN,DESCRIPTION,Sx1,Sy1,Ex1,Ey1,Sx2,Sy2,Ex2,Ey2,Sx3,Sy3,Ex3,Ey3,\"X1,Y1\",\"X2,Y2\",\"X3,Y3\",EVENT_TIME";
+                                    File.AppendAllText(nasFilePath, header + Environment.NewLine, System.Text.Encoding.UTF8);
+                                }
+                                File.AppendAllText(nasFilePath, csvData + Environment.NewLine, System.Text.Encoding.UTF8);
+
+                                // Nếu lưu thành công, đánh dấu và lưu đường dẫn
+                                nasSaved = true;
+                                successfulNasPath = nasFilePath;
+                                break; // Thoát vòng lặp khi lưu thành công
                             }
-                            File.AppendAllText(nasFilePath, csvData + Environment.NewLine, System.Text.Encoding.UTF8);
+                        }
+                        catch (Win32Exception winEx)
+                        {
+                            nasError = $"Lỗi {winEx.NativeErrorCode} ({nasPath}): {winEx.Message}";
+                        }
+                        catch (Exception ex)
+                        {
+                            nasError = $"Lỗi ({nasPath}): {ex.Message}";
                         }
                     }
-                    catch (Win32Exception winEx)
-                    {
-                        nasSaved = false;
-                        nasError = $"Lỗi {winEx.NativeErrorCode}: {winEx.Message}";
-                    }
-                    catch (Exception ex)
-                    {
-                        nasSaved = false;
-                        nasError = ex.Message;
-                    }
 
+                    // Cập nhật UI trên luồng chính
                     this.Invoke(new Action(() =>
                     {
                         if (nasSaved)
                         {
-                            LblStatus.Text += $"\nNAS Server: {nasFilePath}";
+                            LblStatus.Text += $"\nNAS Server: {successfulNasPath}";
                             statusToolTip.SetToolTip(LblStatus, "BẤM VÀO ĐÂY ĐỂ MỞ VỊ TRÍ LƯU FILE");
                         }
                         else
@@ -683,18 +704,14 @@ namespace IT_CONFIRM_EDTION
             }
             catch (IOException)
             {
-                // Cập nhật thông báo lỗi cụ thể khi file đang được mở
                 LblStatus.ForeColor = System.Drawing.Color.Red;
                 LblStatus.Text = "File đang được mở bởi ứng dụng khác hoặc không thể ghi dữ liệu.\nHãy đóng file đang mở trước khi bấm Save";
-                // Xóa tooltip khi có lỗi
                 statusToolTip.SetToolTip(LblStatus, "");
             }
             catch (Exception ex)
             {
-                // Báo lỗi chung nếu có lỗi khác
                 LblStatus.ForeColor = System.Drawing.Color.Red;
                 LblStatus.Text = $"Đã xảy ra lỗi: {ex.Message}";
-                // Xóa tooltip khi có lỗi
                 statusToolTip.SetToolTip(LblStatus, "");
             }
         }
@@ -758,18 +775,14 @@ namespace IT_CONFIRM_EDTION
         // Phương thức mới để đếm và cập nhật số lượng sAPN đã lưu
         private void UpdateSavedSAPNCount()
         {
-            // Lấy múi giờ GMT+7
             TimeZoneInfo vietnamZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
             DateTime vietnamTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, vietnamZone);
 
-            // Xác định ngày và ca làm việc
             string dateString;
             string shift;
 
-            // Nếu thời gian từ 20:00 hôm nay đến trước 08:00 hôm sau, sử dụng ngày bắt đầu ca đêm
             if (vietnamTime.Hour >= 20 || vietnamTime.Hour < 8)
             {
-                // Nếu thời gian từ 00:00 đến 07:59:59, sử dụng ngày hôm trước
                 if (vietnamTime.Hour < 8)
                 {
                     dateString = vietnamTime.AddDays(-1).ToString("yyyyMMdd");
@@ -780,14 +793,13 @@ namespace IT_CONFIRM_EDTION
                 }
                 shift = "NIGHT";
             }
-            // Nếu thời gian từ 08:00 đến trước 20:00, sử dụng ngày hiện tại và ca ngày
             else
             {
                 dateString = vietnamTime.ToString("yyyyMMdd");
                 shift = "DAY";
             }
 
-            string eqpid = ReadEQPIDFromIniFile(); // Lấy EQPID từ file ini
+            string eqpid = ReadEQPIDFromIniFile();
             string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             string appFolderPath = Path.Combine(desktopPath, "IT_CONFIRM_EDITION");
             string fileName = string.IsNullOrEmpty(eqpid) ? $"IT_{dateString}_{shift}.csv" : $"IT_{eqpid}_{dateString}_{shift}.csv";
@@ -799,37 +811,66 @@ namespace IT_CONFIRM_EDTION
                 try
                 {
                     var lines = File.ReadAllLines(filePath, System.Text.Encoding.UTF8);
-                    // Bỏ qua dòng tiêu đề
+                    if (lines.Length == 0) return;
+
+                    // Kiểm tra tiêu đề để xác định định dạng
+                    string[] headers = lines[0].Split(',');
+                    bool isNewFormat = headers.Contains("\"X1,Y1\"");
+
                     for (int i = 1; i < lines.Length; i++)
                     {
                         var parts = lines[i].Split(',');
-                        if (parts.Length > 1 && !string.IsNullOrWhiteSpace(parts[1])) // Kiểm tra cột sAPN
+                        if (parts.Length < 2 || string.IsNullOrWhiteSpace(parts[1])) continue; // Kiểm tra sAPN
+
+                        bool hasCoordinates = false;
+                        // Kiểm tra các cột Sx,Sy,Ex,Ey
+                        for (int j = 3; j <= 14; j++) // Sx1,Sy1,Ex1,Ey1,Sx2,Sy2,Ex2,Ey2,Sx3,Sy3,Ex3,Ey3
                         {
-                            // Kiểm tra xem có ít nhất một tọa độ không rỗng
-                            bool hasCoordinates = false;
-                            for (int j = 3; j < parts.Length - 1; j++) // Bắt đầu từ cột sau ERROR_TYPE
+                            if (j < parts.Length && !string.IsNullOrWhiteSpace(parts[j]))
                             {
-                                if (!string.IsNullOrWhiteSpace(parts[j]))
+                                hasCoordinates = true;
+                                break;
+                            }
+                        }
+
+                        // Kiểm tra các cột X,Y
+                        if (isNewFormat)
+                        {
+                            // Định dạng mới: "X1,Y1","X2,Y2","X3,Y3"
+                            for (int j = 15; j <= 17; j++) // "X1,Y1","X2,Y2","X3,Y3"
+                            {
+                                if (j < parts.Length && !string.IsNullOrWhiteSpace(parts[j]) && parts[j] != "\"\"")
                                 {
                                     hasCoordinates = true;
                                     break;
                                 }
                             }
-                            if (hasCoordinates)
+                        }
+                        else
+                        {
+                            // Định dạng cũ: X1,Y1,X2,Y2,X3,Y3
+                            for (int j = 15; j <= 20; j++) // X1,Y1,X2,Y2,X3,Y3
                             {
-                                count++;
+                                if (j < parts.Length && !string.IsNullOrWhiteSpace(parts[j]))
+                                {
+                                    hasCoordinates = true;
+                                    break;
+                                }
                             }
+                        }
+
+                        if (hasCoordinates)
+                        {
+                            count++;
                         }
                     }
                 }
                 catch (IOException)
                 {
-                    // Bỏ qua lỗi nếu file đang được mở, không cập nhật bộ đếm
-                    return;
+                    return; // Bỏ qua nếu file đang mở
                 }
                 catch (Exception ex)
                 {
-                    // Xử lý các lỗi khác nếu có
                     LblStatus.ForeColor = System.Drawing.Color.Red;
                     LblStatus.Text = $"Lỗi khi đọc file đếm số lượng: {ex.Message}";
                     return;
@@ -871,13 +912,9 @@ namespace IT_CONFIRM_EDTION
 
             string eqpid = ReadEQPIDFromIniFile();
             string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            string directoryPath = Path.Combine(desktopPath, "IT_CONFIRM");
+            string directoryPath = Path.Combine(desktopPath, "IT_CONFIRM_EDITION");
             string fileName = string.IsNullOrEmpty(eqpid) ? $"IT_{dateString}_{shift}.csv" : $"IT_{eqpid}_{dateString}_{shift}.csv";
             _lastSavedFilePath = Path.Combine(directoryPath, fileName);
-
-            // Tạo đường dẫn NAS với thư mục con EQPID
-            string nasSubDirectory = string.IsNullOrEmpty(eqpid) ? "NoEQPID" : eqpid;
-            nasFilePath = Path.Combine(nasDirectoryPath, nasSubDirectory, fileName);
 
             // Đảm bảo thư mục cục bộ tồn tại
             try
@@ -891,34 +928,6 @@ namespace IT_CONFIRM_EDTION
             {
                 LblStatus.ForeColor = System.Drawing.Color.Red;
                 LblStatus.Text = $"Lỗi tạo thư mục cục bộ: {ex.Message}";
-            }
-
-            // Kiểm tra kết nối NAS trước khi tạo thư mục
-            try
-            {
-                using (var connection = new NetworkConnection(nasDirectoryPath, ReadNASCredentialsFromIniFile()))
-                {
-                    if (!Directory.Exists(nasDirectoryPath))
-                    {
-                        Directory.CreateDirectory(nasDirectoryPath);
-                    }
-
-                    string nasSubDirectoryPath = Path.Combine(nasDirectoryPath, nasSubDirectory);
-                    if (!Directory.Exists(nasSubDirectoryPath))
-                    {
-                        Directory.CreateDirectory(nasSubDirectoryPath);
-                    }
-                }
-            }
-            catch (Win32Exception winEx)
-            {
-                LblStatus.ForeColor = System.Drawing.Color.Red;
-                LblStatus.Text = $"Lỗi kết nối NAS ({winEx.NativeErrorCode}): {winEx.Message}";
-            }
-            catch (Exception ex)
-            {
-                LblStatus.ForeColor = System.Drawing.Color.Red;
-                LblStatus.Text = $"Lỗi tạo thư mục NAS {nasSubDirectory}: {ex.Message}";
             }
         }
         #endregion
@@ -954,16 +963,39 @@ namespace IT_CONFIRM_EDTION
         }
 
         /// <summary>
-        /// Đọc giá trị NASPATH, NASUSER, NASPASSWORD, NASDOMAIN từ section [NAS SERVER] trong file NAS.ini, tạo file nếu chưa tồn tại
+        /// Đọc danh sách thông tin xác thực NAS từ file NAS.ini, tạo file với ba khối [NAS SERVER] nếu chưa tồn tại
         /// </summary>
-        /// <returns>NetworkCredential chứa thông tin xác thực NAS</returns>
-        private NetworkCredential ReadNASCredentialsFromIniFile()
+        /// <returns>Danh sách các tuple chứa NASPATH và NetworkCredential</returns>
+        private List<(string NasPath, NetworkCredential Credentials)> ReadNASCredentialsFromIniFile()
         {
-            string filePath = @"C:\IT_CONFIRM\Config\NAS_EDITION.ini";
-            string defaultNasPath = @"\\107.126.41.111\IT_CONFIRM";
-            string defaultNasUser = "admin";
-            string defaultNasPassword = "insp2019@";
-            string defaultNasDomain = "";
+            string filePath = @"C:\IT_CONFIRM\Config\NAS.ini";
+            List<(string NasPath, NetworkCredential Credentials)> nasCredentialsList = new List<(string, NetworkCredential)>();
+
+            // Mặc định cho ba khối NAS SERVER
+            var defaultNasServers = new[]
+            {
+        new
+        {
+            NasPath = @"\\107.126.41.111\IT_CONFIRM",
+            NasUser = "admin",
+            NasPassword = "insp2019@",
+            NasDomain = ""
+        },
+        new
+        {
+            NasPath = @"\\107.126.41.112\IT_CONFIRM",
+            NasUser = "admin2",
+            NasPassword = "password2",
+            NasDomain = ""
+        },
+        new
+        {
+            NasPath = @"\\107.126.41.113\IT_CONFIRM",
+            NasUser = "admin3",
+            NasPassword = "password3",
+            NasDomain = ""
+        }
+    };
 
             try
             {
@@ -979,69 +1011,108 @@ namespace IT_CONFIRM_EDTION
                 {
                     LblStatus.ForeColor = System.Drawing.Color.Red;
                     LblStatus.Text = $"Không có quyền ghi vào thư mục {directoryPath} để tạo NAS.ini";
-                    return new NetworkCredential(defaultNasUser, defaultNasPassword, defaultNasDomain);
+                    // Trả về danh sách mặc định nếu không thể tạo file
+                    foreach (var server in defaultNasServers)
+                    {
+                        nasCredentialsList.Add((server.NasPath, new NetworkCredential(server.NasUser, server.NasPassword, server.NasDomain)));
+                    }
+                    nasDirectoryPath = defaultNasServers[0].NasPath; // Gán mặc định
+                    return nasCredentialsList;
                 }
 
-                // Nếu file chưa tồn tại, tạo file với định dạng INI có section [NAS SERVER]
+                // Nếu file chưa tồn tại, tạo file với ba khối [NAS SERVER]
                 if (!File.Exists(filePath))
                 {
-                    string iniContent = "[NAS SERVER]\n" +
-                                       $"NASPATH={defaultNasPath}\n" +
-                                       $"NASUSER={defaultNasUser}\n" +
-                                       $"NASPASSWORD={defaultNasPassword}\n" +
-                                       $"NASDOMAIN={defaultNasDomain}";
-                    File.WriteAllText(filePath, iniContent, Encoding.UTF8);
-                    //LblStatus.ForeColor = System.Drawing.Color.Blue;
-                    //LblStatus.Text = $"Đã tạo file NAS.ini tại {filePath}";
-                    nasDirectoryPath = defaultNasPath; // Gán mặc định
-                    return new NetworkCredential(defaultNasUser, defaultNasPassword, defaultNasDomain);
+                    StringBuilder iniContent = new StringBuilder();
+                    for (int i = 1; i <= 3; i++)
+                    {
+                        var server = defaultNasServers[i - 1];
+                        iniContent.AppendLine($"[NAS SERVER {i}]");
+                        iniContent.AppendLine($"NASPATH={server.NasPath}");
+                        iniContent.AppendLine($"NASUSER={server.NasUser}");
+                        iniContent.AppendLine($"NASPASSWORD={server.NasPassword}");
+                        iniContent.AppendLine($"NASDOMAIN={server.NasDomain}");
+                        iniContent.AppendLine();
+                    }
+                    File.WriteAllText(filePath, iniContent.ToString(), Encoding.UTF8);
                 }
 
                 // Đọc file
                 string[] lines = File.ReadAllLines(filePath);
-                string nasPath = defaultNasPath;
-                string nasUser = defaultNasUser;
-                string nasPassword = defaultNasPassword;
-                string nasDomain = defaultNasDomain;
-                bool inNasServerSection = false;
+                string currentNasPath = null;
+                string currentNasUser = null;
+                string currentNasPassword = null;
+                string currentNasDomain = null;
+                string currentSection = null;
 
                 foreach (string line in lines)
                 {
                     string trimmedLine = line.Trim();
-                    // Kiểm tra section [NAS SERVER]
-                    if (trimmedLine.Equals("[NAS SERVER]"))
+                    if (string.IsNullOrEmpty(trimmedLine))
+                        continue;
+
+                    // Kiểm tra section
+                    if (trimmedLine.StartsWith("[NAS SERVER"))
                     {
-                        inNasServerSection = true;
+                        // Nếu đã có dữ liệu từ section trước, thêm vào danh sách
+                        if (currentNasPath != null && currentNasUser != null && currentNasPassword != null)
+                        {
+                            nasCredentialsList.Add((currentNasPath, new NetworkCredential(currentNasUser, currentNasPassword, currentNasDomain ?? "")));
+                        }
+                        currentSection = trimmedLine;
+                        currentNasPath = null;
+                        currentNasUser = null;
+                        currentNasPassword = null;
+                        currentNasDomain = null;
                         continue;
                     }
 
-                    // Chỉ đọc các khóa trong section [NAS SERVER]
-                    if (inNasServerSection)
+                    // Đọc các khóa trong section [NAS SERVER]
+                    if (currentSection != null && currentSection.StartsWith("[NAS SERVER"))
                     {
                         if (trimmedLine.StartsWith("NASPATH="))
-                            nasPath = trimmedLine.Substring("NASPATH=".Length);
+                            currentNasPath = trimmedLine.Substring("NASPATH=".Length);
                         else if (trimmedLine.StartsWith("NASUSER="))
-                            nasUser = trimmedLine.Substring("NASUSER=".Length);
+                            currentNasUser = trimmedLine.Substring("NASUSER=".Length);
                         else if (trimmedLine.StartsWith("NASPASSWORD="))
-                            nasPassword = trimmedLine.Substring("NASPASSWORD=".Length);
+                            currentNasPassword = trimmedLine.Substring("NASPASSWORD=".Length);
                         else if (trimmedLine.StartsWith("NASDOMAIN="))
-                            nasDomain = trimmedLine.Substring("NASDOMAIN=".Length);
+                            currentNasDomain = trimmedLine.Substring("NASDOMAIN=".Length);
                     }
                 }
 
-                // Gán nasDirectoryPath (chỉ trong constructor, không gây lỗi readonly)
-                nasDirectoryPath = nasPath;
-                return new NetworkCredential(nasUser, nasPassword, nasDomain);
+                // Thêm section cuối cùng nếu có dữ liệu
+                if (currentNasPath != null && currentNasUser != null && currentNasPassword != null)
+                {
+                    nasCredentialsList.Add((currentNasPath, new NetworkCredential(currentNasUser, currentNasPassword, currentNasDomain ?? "")));
+                }
+
+                // Nếu không tìm thấy section nào hợp lệ, thêm các server mặc định
+                if (nasCredentialsList.Count == 0)
+                {
+                    foreach (var server in defaultNasServers)
+                    {
+                        nasCredentialsList.Add((server.NasPath, new NetworkCredential(server.NasUser, server.NasPassword, server.NasDomain)));
+                    }
+                }
+
+                // Gán nasDirectoryPath cho server đầu tiên trong danh sách
+                nasDirectoryPath = nasCredentialsList[0].NasPath;
+                return nasCredentialsList;
             }
             catch (Exception ex)
             {
                 LblStatus.ForeColor = System.Drawing.Color.Red;
                 LblStatus.Text = $"Lỗi khi đọc/tạo file NAS.ini: {ex.Message}";
-                nasDirectoryPath = defaultNasPath; // Gán mặc định để tránh null
-                return new NetworkCredential(defaultNasUser, defaultNasPassword, defaultNasDomain);
+                // Trả về danh sách mặc định nếu có lỗi
+                foreach (var server in defaultNasServers)
+                {
+                    nasCredentialsList.Add((server.NasPath, new NetworkCredential(server.NasUser, server.NasPassword, server.NasDomain)));
+                }
+                nasDirectoryPath = defaultNasServers[0].NasPath; // Gán mặc định
+                return nasCredentialsList;
             }
         }
-
         // Phương thức kiểm tra quyền ghi thư mục
         private bool IsDirectoryWritable(string directoryPath)
         {
