@@ -1,4 +1,5 @@
-﻿using IT_CONFIRM_EDITION.Properties;
+﻿using IT_CONFIRM_EDITION;
+using IT_CONFIRM_EDITION.Properties;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -72,9 +73,14 @@ namespace IT_CONFIRM_EDTION
             // Gắn sự kiện cho LblCopyright
             LblCopyright.MouseEnter += LblCopyright_MouseEnter;
             LblCopyright.MouseLeave += LblCopyright_MouseLeave;
+
             // Gán sự kiện Click và thay đổi con trỏ chuột cho LblStatus
             this.LblStatus.Click += new EventHandler(this.LblStatus_Click);
             this.LblStatus.Cursor = Cursors.Hand;
+
+            // Gán sự kiện Click và thay đổi con trỏ chuột cho LblStatus
+            this.LblSAPNCount.Click += new EventHandler(this.LblSAPNCount_Click);
+            this.LblSAPNCount.Cursor = Cursors.Hand;
 
             // Khởi tạo NAS
             var nasCredentials = ReadNASCredentialsFromIniFile(); // Gọi hàm để đọc credentials và tạo file NAS.ini       
@@ -310,6 +316,26 @@ namespace IT_CONFIRM_EDTION
         #region KIỂM TRA ĐÃ NHẬP DỮ LIÊU HAY CHƯA
         // Phương thức xử lý sự kiện Click cho LblStatus
         private void LblStatus_Click(object sender, EventArgs e)
+        {
+            // Kiểm tra xem đã có đường dẫn file được lưu chưa
+            if (!string.IsNullOrEmpty(_lastSavedFilePath))
+            {
+                try
+                {
+                    // Lấy đường dẫn thư mục chứa file
+                    string folderPath = Path.GetDirectoryName(_lastSavedFilePath);
+                    // Mở thư mục bằng Windows Explorer
+                    Process.Start("explorer.exe", folderPath);
+                }
+                catch (Exception ex)
+                {
+                    // Báo lỗi nếu không thể mở thư mục
+                    MessageBox.Show($"Không thể mở thư mục. Lỗi: {ex.Message}", "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void LblSAPNCount_Click(object sender, EventArgs e)
         {
             // Kiểm tra xem đã có đường dẫn file được lưu chưa
             if (!string.IsNullOrEmpty(_lastSavedFilePath))
@@ -691,13 +717,15 @@ namespace IT_CONFIRM_EDTION
                     {
                         if (nasSaved)
                         {
-                            LblStatus.Text += $"\nNAS Server: {successfulNasPath}";
-                            statusToolTip.SetToolTip(LblStatus, "BẤM VÀO ĐÂY ĐỂ MỞ VỊ TRÍ LƯU FILE");
+                            LblStatusNas.ForeColor = System.Drawing.Color.Green;
+                            LblStatusNas.Text = $"NAS Server: {successfulNasPath}";
+                            statusToolTip.SetToolTip(LblStatusNas, "BẤM VÀO ĐÂY ĐỂ MỞ VỊ TRÍ LƯU FILE");
                         }
                         else
                         {
-                            LblStatus.Text += $"\nLưu vào server thất bại: {nasError}";
-                            statusToolTip.SetToolTip(LblStatus, "BẤM VÀO ĐÂY ĐỂ MỞ VỊ TRÍ LƯU FILE");
+                            LblStatusNas.ForeColor = System.Drawing.Color.Red;
+                            LblStatusNas.Text = $"NAS Server: {nasError}";
+                            statusToolTip.SetToolTip(LblStatusNas, "Kiểm tra lại NAS.ini hoặc tài khoản NAS");
                         }
                     }));
                 });
@@ -746,6 +774,10 @@ namespace IT_CONFIRM_EDTION
             LblStatus.Text = "Đã khởi tạo lại ứng dụng.";
             // Xóa tooltip khi reset ứng dụng
             statusToolTip.SetToolTip(LblStatus, "");
+            // Reset trạng thái NAS
+            LblStatusNas.ForeColor = System.Drawing.Color.DarkOrange;
+            LblStatusNas.Text = "";
+            statusToolTip.SetToolTip(LblStatusNas, "");
             // Đặt focus lại cho ô đầu tiên
             TxtSAPN.Focus();
         }
